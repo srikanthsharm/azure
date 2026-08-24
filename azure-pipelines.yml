@@ -1,22 +1,42 @@
-# Maven
-# Build your Java project and run tests with Apache Maven.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/java
-
 trigger:
 - main
 
 pool:
-  vmImage: ubuntu-latest
+  vmImage: 'ubuntu-latest'  # Agent to run the build [citation:4][citation:5]
 
-steps:
-- task: Maven@4
-  inputs:
-    mavenPomFile: 'pom.xml'
-    mavenOptions: '-Xmx3072m'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.11'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
-    testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'package'
+variables:
+  # --- IMPORTANT: Replace these values ---
+  azureSubscription: 'your-azure-service-connection'  # Name of your service connection in Azure DevOps
+  appName: 'your-webapp-name'                         # Name of your Web App in Azure
+  containerRegistry: 'your-acr-name.azurecr.io'       # Full login server of your ACR
+  dockerRegistryServiceConnection: 'your-acr-service-connection' # ACR service connection name
+  imageRepository: 'your-image-repo-name'              # Repository name in ACR
+  tag: '$(Build.BuildId)'                              # Unique tag for each build
+  # ----------------------------------------
+
+  dockerfilePath: '**/Dockerfile'                      # Path to your Dockerfile
+  vmImageName: 'ubuntu-latest'                         # Agent for the deployment job
+
+stages:
+- stage: Build
+  displayName: 'Build and Push Stage'
+  jobs:
+  - job: Build
+    displayName: 'Build'
+    pool:
+      vmImage: $(vmImageName)
+    steps:
+    - checkout: self
+
+    # Task 1: Build the Java application with Maven
+    - task: Maven@4
+      displayName: 'Build with Maven'
+      inputs:
+        mavenPomFile: 'pom.xml'
+        mavenOptions: '-Xmx3072m'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '1.17'          # Or your required JDK version [citation:4][citation:6]
+        jdkArchitectureOption: 'x64'
+        publishJUnitResults: true
+        testResultsFiles: '**/surefire-reports/TEST-*.xml'
+        goals: 'clean package'             # Standard Maven build command [citation:8]
